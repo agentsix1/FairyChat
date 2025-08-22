@@ -6,18 +6,15 @@ plugins {
     alias(libs.plugins.lombok)
     alias(libs.plugins.runpaper)
     alias(libs.plugins.shadow)
-    // Plugins for publishing on platforms
     alias(libs.plugins.hangar)
     alias(libs.plugins.minotaur)
-    // Plugins to generate plugin metadata files
     alias(libs.plugins.paperyml)
     alias(libs.plugins.pluginyml)
 }
 
 repositories {
     mavenCentral()
-    maven() {
-        url = uri("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
+    maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/") {
         content {
             includeGroup("org.spigotmc")
             includeGroup("org.bukkit")
@@ -31,15 +28,16 @@ repositories {
 dependencies {
     compileOnly(libs.spigot)
 
-    library(libs.jedis)
-    library(libs.commandframework)
-    library(libs.configlib)
-    library(libs.guice)
-    library(libs.hikaridb)
-    library(libs.stringsimilarity)
-    library(libs.bundles.adventure)
+    // 🔹 Now shaded into the final jar
+    implementation(libs.jedis)
+    implementation(libs.commandframework)
+    implementation(libs.configlib)
+    implementation(libs.guice)
+    implementation(libs.hikaridb)
+    implementation(libs.stringsimilarity)
+    implementation(libs.bundles.adventure)
 
-    // Plugin dependencies
+    // 🔹 Plugin hooks only, not shaded
     compileOnly(libs.miniplaceholders)
     compileOnly(libs.placeholderapi)
     compileOnly(libs.luckperms)
@@ -78,7 +76,6 @@ tasks {
     }
     shadowJar {
         archiveClassifier.set("")
-        relocate("org.bstats", "de.rexlmanu.fairychat.dependencies.bstats")
         from(file("LICENSE"))
 
         dependencies {
@@ -87,6 +84,16 @@ tasks {
             exclude("META-INF/versions/**")
             exclude("META-INF/**.kotlin_module")
         }
+
+        // 🔹 Relocate shaded dependencies
+        relocate("org.bstats", "de.rexlmanu.fairychat.dependencies.bstats")
+        relocate("redis.clients.jedis", "de.rexlmanu.fairychat.dependencies.jedis")
+        relocate("cloud.commandframework", "de.rexlmanu.fairychat.dependencies.commandframework")
+        relocate("eu.okaeri.configs", "de.rexlmanu.fairychat.dependencies.configlib")
+        relocate("com.google.inject", "de.rexlmanu.fairychat.dependencies.guice")
+        relocate("com.zaxxer.hikari", "de.rexlmanu.fairychat.dependencies.hikaridb")
+        relocate("info.debatty.java.stringsimilarity", "de.rexlmanu.fairychat.dependencies.stringsimilarity")
+        relocate("net.kyori.adventure", "de.rexlmanu.fairychat.dependencies.adventure")
     }
     runServer {
         minecraftVersion("1.20.4")
@@ -95,7 +102,7 @@ tasks {
 
 tasks.getByName("modrinth").dependsOn(tasks.modrinthSyncBody)
 
-val versions = listOf("1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.20.5", "1.20.6", "1.21", "1.21.1", "1.21.2", "1.21.3");
+val versions = listOf("1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.20.5", "1.20.6", "1.21", "1.21.1", "1.21.2", "1.21.3", "1.21.4", "1.21.5", "1.21.6", "1.21.7", "1.21.8");
 
 modrinth {
     token.set(System.getenv("MODRINTH_TOKEN"))
@@ -125,19 +132,12 @@ hangarPublish {
         changelog.set(System.getenv("HANGAR_CHANGELOG"))
         apiKey.set(System.getenv("HANGAR_TOKEN"))
 
-        // register platforms
         platforms {
             register(Platforms.PAPER) {
                 jar.set(layout.buildDirectory.file("libs/FairyChat-${rootProject.version}.jar"))
                 platformVersions.set(versions)
                 dependencies {
-                    hangar("MiniPlaceholders") {
-                        required.set(false)
-                    }
-//                  Luckperms is not yet available on hangar
-//                    hangar("luckPerms", "luckperms") {
-//                        required.set(false)
-//                    }
+                    hangar("MiniPlaceholders") { required.set(false) }
                 }
             }
         }
@@ -153,30 +153,21 @@ bukkit {
     load = BukkitPluginDescription.PluginLoadOrder.POSTWORLD
     softDepend = listOf("MiniPlaceholders", "LuckPerms", "PlaceholderAPI", "UltraPermissions")
     prefix = "FairyChat"
-    generateLibrariesJson = true
+    generateLibrariesJson = false // 🔹 disable runtime maven fetching
 }
 
 paper {
     main = "de.rexlmanu.fairychat.plugin.FairyChatPlugin"
-    loader = "de.rexlmanu.fairychat.plugin.paper.FairyChatLoader"
     apiVersion = "1.20"
     foliaSupported = true
     author = "rexlManu"
     website = "https://github.com/rexlManu/FairyChat"
     prefix = "FairyChat"
     serverDependencies {
-        register("MiniPlaceholders") {
-            required = false
-        }
-        register("LuckPerms") {
-            required = false
-        }
-        register("PlaceholderAPI") {
-            required = false
-        }
-        register("UltraPermissions") {
-            required = false
-        }
+        register("MiniPlaceholders") { required = false }
+        register("LuckPerms") { required = false }
+        register("PlaceholderAPI") { required = false }
+        register("UltraPermissions") { required = false }
     }
-    generateLibrariesJson = true
+    generateLibrariesJson = false // 🔹 no libraries.json
 }
