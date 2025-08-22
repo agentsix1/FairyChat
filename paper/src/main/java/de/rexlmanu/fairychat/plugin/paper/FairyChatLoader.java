@@ -17,14 +17,6 @@ import org.jetbrains.annotations.NotNull;
 
 @SuppressWarnings("UnstableApiUsage")
 public class FairyChatLoader implements PluginLoader {
-  @Override
-  public void classloader(@NotNull PluginClasspathBuilder classpathBuilder) {
-    MavenLibraryResolver resolver = new MavenLibraryResolver();
-    PluginLibraries pluginLibraries = this.load();
-    pluginLibraries.asDependencies().forEach(resolver::addDependency);
-    pluginLibraries.asRepositories().forEach(resolver::addRepository);
-    classpathBuilder.addLibrary(resolver);
-  }
 
   public PluginLibraries load() {
     try (var inputStream = this.getClass().getResourceAsStream("/paper-libraries.json")) {
